@@ -63,14 +63,14 @@ export default function Card({ index, name, onDelete }: Prop) {
 
   return (
     <div className=" rounded-md items-start w-72 flex flex-col bg-zinc-800 h-min">
-      <div className="flex w-full justify-between items-center">
+      <div className="flex w-full justify-between items-center  border-b-2 border-zinc-600">
         <button onClick={() => onDelete(index)}>
           <FontAwesomeIcon
             className=" w-4 h-4 ml-3 mt-2 rounded-md bg-zinc-800 hover:bg-zinc-900 text-zinc-300 hover:text-zinc-50"
             icon={faTrash}
           />
         </button>
-        <p className=" flex text-center font-semibold text-xl text-zinc-200 border-b-2 border-zinc-600 ">
+        <p className=" flex text-center font-semibold text-xl text-zinc-200 ">
           {name}
         </p>
         <button>

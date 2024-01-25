@@ -4,7 +4,21 @@ import Card, { ICard } from "@/components/card";
 import { faPlus } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import Image from "next/image";
-import { useEffect, useState } from "react";
+import { FormEvent, use, useEffect, useState } from "react";
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { stringify } from "querystring";
 
 const CARDS: ICard[] = [
   {
@@ -20,6 +34,88 @@ const CARDS: ICard[] = [
     name: "Done",
   },
 ];
+
+interface Prop {
+  onAddNewCard: (name: string) => void;
+  cards: ICard[];
+}
+
+export function AddCardDialog({ onAddNewCard, cards }: Prop) {
+  console.log("cards: " + cards.length);
+
+  const [cardName, setCardName] = useState<string>(
+    "New Card (" + (cards.length + 1) + ")"
+  );
+
+  const onNameChange = (e?: FormEvent<HTMLInputElement>) => {
+    console.log("cards, onNameChange: " + cards.length);
+
+    if (!e) {
+      setCardName("New Card (" + (cards.length + 1) + ")");
+      return;
+    }
+
+    const target = e?.target as HTMLInputElement;
+    const nameToSet =
+      target?.value === ""
+        ? "New Card (" + (cards.length + 1) + ")"
+        : target?.value;
+
+    setCardName(nameToSet);
+  };
+
+  // useEffect(() => {
+  //   setCardName();
+  // }, []);
+
+  return (
+    <Dialog>
+      <DialogTrigger asChild>
+        <Button
+          className="bg-zinc-800 border-zinc-800 text-zinc-300 hover:text-zinc-50 rounded-md hover:bg-zinc-700"
+          variant="outline"
+        >
+          <FontAwesomeIcon className=" w-6 h-6" icon={faPlus} />
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="sm:max-w-[425px] bg-zinc-900 border-zinc-600">
+        <DialogHeader>
+          <DialogTitle className="text-zinc-300">Add card</DialogTitle>
+          <DialogDescription className="text-zinc-400">
+            Set your card data here. Click add when you&apos;re done.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="grid gap-4 py-4">
+          <div className="grid grid-cols-4 items-center gap-4 ">
+            <Label htmlFor="name" className="text-right">
+              Title
+            </Label>
+            <Input
+              id="name"
+              onInput={(e) => onNameChange(e)}
+              defaultValue=""
+              className="col-span-3 bg-zinc-950 border-zinc-600"
+            />
+          </div>
+        </div>
+        <DialogFooter>
+          <DialogClose>
+            <Button
+              onClick={() => {
+                onNameChange();
+                onAddNewCard(cardName);
+              }}
+              className="bg-zinc-800 hover:bg-zinc-900 border border-zinc-600"
+              type="submit"
+            >
+              Add
+            </Button>
+          </DialogClose>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
 
 export default function Home() {
   useEffect(() => {
@@ -51,12 +147,7 @@ export default function Home() {
           onDelete={removeItem}
         ></Card>
       ))}
-      <button
-        onClick={() => addNewCard("New card " + cards.length)}
-        className="bg-zinc-800  rounded-md w-10 h-10 hover:bg-zinc-700"
-      >
-        <FontAwesomeIcon className=" w-6 h-6 mt-1" icon={faPlus} />
-      </button>
+      <AddCardDialog onAddNewCard={addNewCard} cards={cards}></AddCardDialog>
     </div>
   );
 }

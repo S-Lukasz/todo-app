@@ -4,7 +4,14 @@ import Card, { ICard } from "@/components/card";
 import { faPlus } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import Image from "next/image";
-import { FormEvent, use, useEffect, useState } from "react";
+import {
+  FormEvent,
+  createContext,
+  use,
+  useContext,
+  useEffect,
+  useState,
+} from "react";
 import {
   Dialog,
   DialogClose,
@@ -15,23 +22,27 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { stringify } from "querystring";
+import { ICardItem } from "@/components/cardItem";
 
 const CARDS: ICard[] = [
   {
     index: 0,
     name: "ToDo",
+    items: [] as ICardItem[],
   },
   {
     index: 1,
     name: "In Progress",
+    items: [] as ICardItem[],
   },
   {
     index: 2,
     name: "Done",
+    items: [] as ICardItem[],
   },
 ];
 
@@ -40,7 +51,7 @@ interface Prop {
   cards: ICard[];
 }
 
-export function AddCardDialog({ onAddNewCard, cards }: Prop) {
+function AddCardDialog({ onAddNewCard, cards }: Prop) {
   console.log("cards: " + cards.length);
 
   const [cardName, setCardName] = useState<string>(
@@ -63,10 +74,6 @@ export function AddCardDialog({ onAddNewCard, cards }: Prop) {
 
     setCardName(nameToSet);
   };
-
-  // useEffect(() => {
-  //   setCardName();
-  // }, []);
 
   return (
     <Dialog>
@@ -117,37 +124,98 @@ export function AddCardDialog({ onAddNewCard, cards }: Prop) {
   );
 }
 
+export interface MainContext {
+  addItemToCard: (card: ICard, newDesc: string) => void;
+  removeItemFromCard: (card: ICard, index: number) => void;
+}
+
+export const Context = createContext<MainContext>({
+  addItemToCard: () => {},
+  removeItemFromCard: () => {},
+});
+
 export default function Home() {
+  const [cards, setCards] = useState<ICard[]>([]);
+
   useEffect(() => {
     setCards(CARDS);
   }, []);
 
-  const [cards, setCards] = useState<ICard[]>([]);
+  function addItemToCard(card: ICard, newDesc: string) {
+    const newItem: ICardItem = {
+      currentCard: card,
+      index: card.items.length,
+      desc: newDesc,
+    };
+
+    const cardsWithAddedItem = { ...card, items: [...card.items, newItem] };
+    const cardsCopy = [...cards];
+    const foundIndex = cardsCopy.findIndex(
+      (cardCopy) => card.index === cardCopy.index
+    );
+    cardsCopy.splice(foundIndex, 1, cardsWithAddedItem);
+
+    setCards(cardsCopy);
+  }
+
+  const [cardItemsRemove, setCardItemsRemove] = useState<ICardItem[]>([]);
+  function removeItemFromCard(card: ICard, itemIndex: number) {
+    console.log("removeItemFromCard 1: " + card.items.length);
+    setCardItemsRemove(card.items);
+
+    console.log("removeItemFromCard 2: " + cardItemsRemove.length);
+
+    setCardItemsRemove((cardItemsRemove) =>
+      cardItemsRemove.filter((cardItem) => cardItem.index !== itemIndex)
+    );
+
+    console.log("removeItemFromCard 3: " + cardItemsRemove.length);
+
+    const cardWithRemovedItem = { ...card, items: cardItemsRemove };
+
+    console.log("removeItemFromCard 4: " + cardWithRemovedItem.items.length);
+
+    const cardsCopy = [...cards];
+    const foundIndex = cardsCopy.findIndex(
+      (cardCopy) => card.index === cardCopy.index
+    );
+
+    cardsCopy.splice(foundIndex, 1, cardWithRemovedItem);
+    setCards(cardsCopy);
+  }
 
   function addNewCard(name: string) {
     const newCard: ICard = {
       index: cards.length,
       name: name,
+      items: [],
     };
 
     setCards([...cards, newCard]);
   }
 
-  function removeItem(cardIndex: number) {
+  function removeCard(cardIndex: number) {
     setCards((card) => cards.filter((card) => card.index !== cardIndex));
   }
 
   return (
-    <div className="flex flex-col sm:flex-row items-center sm:items-start w-full sm:ml-4 screen gap-4 my-4 flex-wrap">
-      {cards.map((result, i) => (
-        <Card
-          key={"projectKey_" + i}
-          index={result.index}
-          name={result.name}
-          onDelete={removeItem}
-        ></Card>
-      ))}
-      <AddCardDialog onAddNewCard={addNewCard} cards={cards}></AddCardDialog>
-    </div>
+    <Context.Provider
+      value={{
+        addItemToCard: addItemToCard,
+        removeItemFromCard: removeItemFromCard,
+      }}
+    >
+      <div className="flex flex-col sm:flex-row items-center sm:items-start w-full sm:ml-4 screen gap-4 my-4 flex-wrap">
+        {cards.map((result, i) => (
+          <Card
+            key={"projectKey_" + i}
+            card={cards[i]}
+            cards={cards}
+            onRemove={removeCard}
+          ></Card>
+        ))}
+        <AddCardDialog onAddNewCard={addNewCard} cards={cards}></AddCardDialog>
+      </div>
+    </Context.Provider>
   );
 }

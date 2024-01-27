@@ -29,7 +29,7 @@ import {
 import { Label } from "./ui/label";
 import { Input } from "./ui/input";
 import { Textarea } from "./ui/textarea";
-import { Context } from "@/app/page";
+import { Context } from "./context";
 
 export interface ICard {
   index: number;

@@ -3,17 +3,7 @@
 import Card, { ICard } from "@/components/card";
 import { faPlus } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import Image from "next/image";
-import {
-  FormEvent,
-  createContext,
-  use,
-  useCallback,
-  useContext,
-  useEffect,
-  useMemo,
-  useState,
-} from "react";
+import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import {
   Dialog,
   DialogClose,
@@ -29,8 +19,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ICardItem } from "@/components/cardItem";
-import { ReceiptPoundSterling } from "lucide-react";
-import { json } from "stream/consumers";
+import { Context } from "@/components/context";
 
 const CARDS: ICard[] = [
   {
@@ -152,28 +141,6 @@ function AddCardDialog({ onAddNewCard, cards }: Prop) {
     </Dialog>
   );
 }
-
-export interface MainContext {
-  cards: ICard[];
-  moveCardItem: (
-    currentCardIndex: number,
-    cardToAddIndex: number,
-    cardItemToMove: ICardItem
-  ) => void;
-  addItemToCard: (cardIndex: number, newName: string, newDesc: string) => void;
-  removeItemFromCard: (cardIndex: number, index: number) => void;
-  saveCardsToStorage: (cards: ICard[]) => void;
-  loadCardsFromStorage: () => void;
-}
-
-export const Context = createContext<MainContext>({
-  cards: [],
-  moveCardItem: () => {},
-  addItemToCard: () => {},
-  removeItemFromCard: () => {},
-  saveCardsToStorage: () => {},
-  loadCardsFromStorage: () => {},
-});
 
 export default function Home() {
   const [cards, setCards] = useState<ICard[]>([]);

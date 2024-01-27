@@ -1,6 +1,5 @@
 "use client";
 
-import { Context } from "@/app/page";
 import { useContext } from "react";
 import {
   AlertDialog,
@@ -15,6 +14,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faRotateRight } from "@fortawesome/free-solid-svg-icons";
+import { Context } from "./context";
 
 export default function Header() {
   const { loadCardsFromStorage } = useContext(Context);

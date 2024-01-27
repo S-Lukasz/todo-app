@@ -26,10 +26,10 @@ export default function Header() {
   }
 
   return (
-    <header className="sticky top-0 z-10 h-12 flex bg-zinc-950 shadow-md items-center">
+    <header className="sticky top-0 z-10 h-24 sm:h-12 flex bg-zinc-950 shadow-md items-center">
       <AlertDialog>
         <AlertDialogTrigger asChild>
-          <button className="bg-zinc-800 flex items-center gap-2 hover:bg-zinc-700 text-zinc-300 hover:text-zinc-50 rounded-md h-1/2 px-2 ml-4">
+          <button className="bg-zinc-800 flex items-center gap-2 hover:bg-zinc-700 text-zinc-300 hover:text-zinc-50 rounded-md h-1/3 sm:h-1/2 px-2 sm:mt-1 sm:ml-4 mx-auto mt-8">
             <FontAwesomeIcon icon={faRotateRight} /> <p>Clear Data</p>
           </button>
         </AlertDialogTrigger>

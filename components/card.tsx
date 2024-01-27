@@ -47,12 +47,13 @@ interface AddCardItemProp {
 }
 
 interface EditCardProp {
-  currentName: string;
-  onCardEdit: (name: string) => void;
+  card: ICard;
+  onCardNameSet: (newName: string) => void;
 }
 
-function EditCardDialog({ onCardEdit, currentName }: EditCardProp) {
-  const [cardName, setCardName] = useState<string>(currentName);
+function EditCardDialog({ card, onCardNameSet }: EditCardProp) {
+  const [cardName, setCardName] = useState<string>(card.name);
+  const { saveCardsToStorage, cards } = useContext(Context);
 
   const maxNameLength = 16;
   const isCardNameToLong = useMemo(() => {
@@ -62,6 +63,19 @@ function EditCardDialog({ onCardEdit, currentName }: EditCardProp) {
   const isCardNameEmpty = useMemo(() => {
     return !cardName;
   }, [cardName]);
+
+  function onNameConfirm() {
+    const cardWithNewName = { ...card, name: cardName };
+    const cardsCopy = [...cards];
+    const foundIndex = cardsCopy.findIndex(
+      (cardCopy) => card.index === cardCopy.index
+    );
+
+    cardsCopy.splice(foundIndex, 1, cardWithNewName);
+
+    saveCardsToStorage(cardsCopy);
+    onCardNameSet(cardName);
+  }
 
   const onNameChange = (e?: FormEvent<HTMLInputElement>) => {
     if (!e) {
@@ -119,7 +133,7 @@ function EditCardDialog({ onCardEdit, currentName }: EditCardProp) {
             <Input
               id="name"
               onInput={(e) => onNameChange(e)}
-              defaultValue={currentName}
+              defaultValue={card.name}
               className="col-span-3 bg-zinc-950 border-zinc-600"
             />
           </div>
@@ -132,7 +146,7 @@ function EditCardDialog({ onCardEdit, currentName }: EditCardProp) {
               disabled={isCardNameToLong || isCardNameEmpty}
               onClick={() => {
                 onNameChange();
-                onCardEdit(cardName);
+                onNameConfirm();
               }}
               className="bg-zinc-800 hover:bg-zinc-900 border border-zinc-600"
               type="submit"
@@ -258,8 +272,6 @@ export function AddCardItemDialog({ card }: AddCardItemProp) {
             <Button
               disabled={isCardNameToLong || isCardDescEmpty || isCardNameEmpty}
               onClick={() => {
-                console.log("add item to card: " + card.items.length);
-                // onNameChange();
                 addItemToCard(card.index, cardName, cardDesc);
               }}
               className="bg-zinc-800 hover:bg-zinc-900 border border-zinc-600"
@@ -275,7 +287,7 @@ export function AddCardItemDialog({ card }: AddCardItemProp) {
 }
 
 export default function Card({ card, onRemove }: Prop) {
-  const [cardName, setcardName] = useState<string>(card.name);
+  const [cardName, setCardName] = useState<string>(card.name);
 
   const cardItems = useMemo(() => {
     return (
@@ -291,10 +303,6 @@ export default function Card({ card, onRemove }: Prop) {
   }, [card]);
 
   if (!card) return <></>;
-
-  function editCardName(newName: string) {
-    setcardName(newName);
-  }
 
   return (
     <div className=" rounded-md items-start w-72 flex flex-col bg-zinc-800 h-min">
@@ -315,7 +323,7 @@ export default function Card({ card, onRemove }: Prop) {
               </AlertDialogTitle>
               <AlertDialogDescription className="text-zinc-400">
                 This action cannot be undone. This will permanently delete
-                &apos;{card.name}&apos; card and remove all your tasks attached
+                &apos;{cardName}&apos; card and remove all your tasks attached
                 to it.
               </AlertDialogDescription>
             </AlertDialogHeader>
@@ -337,8 +345,8 @@ export default function Card({ card, onRemove }: Prop) {
           {cardName}
         </p>
         <EditCardDialog
-          onCardEdit={editCardName}
-          currentName={cardName}
+          card={card}
+          onCardNameSet={setCardName}
         ></EditCardDialog>
       </div>
 

@@ -45,10 +45,7 @@ interface Prop {
 }
 
 function AddCardDialog({ onAddNewCard, cards }: Prop) {
-  console.log("cards: " + cards.length);
-
   const [cardName, setCardName] = useState<string>("");
-
   const maxNameLength = 16;
 
   const isCardNameToLong = useMemo(() => {
@@ -94,10 +91,13 @@ function AddCardDialog({ onAddNewCard, cards }: Prop) {
     <Dialog>
       <DialogTrigger asChild>
         <Button
-          className="bg-zinc-800 border-zinc-800 text-zinc-300 hover:text-zinc-50 rounded-md hover:bg-zinc-700"
+          className="bg-zinc-700 border-zinc-700 text-zinc-300 w-72 hover:text-zinc-50 rounded-md hover:bg-zinc-800 hover:border-zinc-800"
           variant="outline"
         >
-          <FontAwesomeIcon className=" w-6 h-6" icon={faPlus} />
+          <div className=" w-full flex items-center gap-4">
+            <FontAwesomeIcon className=" w-5 h-5" icon={faPlus} />{" "}
+            <p>Add new card</p>
+          </div>
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-[425px] bg-zinc-900 border-zinc-600">
@@ -159,8 +159,6 @@ export default function Home() {
 
   const addItemToCard = useCallback(
     (cardIndex: number, newName: string, newDesc: string) => {
-      console.log("addItemToCard: " + cardIndex);
-
       const cardToAddItemTo = cards.find(
         (cardInCurrentCards) => cardIndex === cardInCurrentCards.index
       );
@@ -187,6 +185,7 @@ export default function Home() {
       cardsCopy.splice(foundIndex, 1, cardsWithAddedItem);
 
       setCards(cardsCopy);
+      saveCardsToStorage(cardsCopy);
     },
     [cards]
   );
@@ -214,6 +213,7 @@ export default function Home() {
       cardsCopy.splice(foundIndex, 1, cardWithRemovedItem);
 
       setCards(cardsCopy);
+      saveCardsToStorage(cardsCopy);
     },
     [cards]
   );
@@ -235,6 +235,8 @@ export default function Home() {
   function saveCardsToStorage(cards: ICard[]) {
     const cardsDataToJson = JSON.stringify(cards);
     localStorage.setItem("cardsData", cardsDataToJson);
+
+    console.log("saveCardsToStorage, data: " + cardsDataToJson);
   }
 
   function loadCardsFromStorage() {
@@ -301,25 +303,17 @@ export default function Home() {
 
     cardsCopy.splice(foundIndexToRemove, 1, cardWithRemovedItem);
     setCards(cardsCopy);
+
+    saveCardsToStorage(cardsCopy);
   }
 
   function removeCard(cardIndex: number) {
-    console.log("removeCard, index: " + cardIndex);
-
-    // const cardsCopy = [...cards];
-
-    // cardsCopy.forEach((card) =>
-    //   console.log("removeCard, cards i: " + card.index)
-    // );
-
     const cardsCopy = cards.filter((card) => card.index !== cardIndex);
     saveCardsToStorage(cardsCopy);
 
     setTimeout(() => {
       loadCardsFromStorage();
     });
-
-    // cards.forEach((card) => console.log("removeCard, cards i: " + card.index));
   }
 
   return (
@@ -343,8 +337,6 @@ export default function Home() {
         ))}
         <AddCardDialog onAddNewCard={addNewCard} cards={cards}></AddCardDialog>
       </div>
-
-      {/* {JSON.stringify(cards)} */}
     </Context.Provider>
   );
 }

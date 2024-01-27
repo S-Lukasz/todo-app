@@ -3,8 +3,6 @@
 import {
   faBars,
   faChevronDown,
-  faEllipsis,
-  faMinus,
   faPenSquare,
   faXmark,
 } from "@fortawesome/free-solid-svg-icons";
@@ -71,28 +69,29 @@ interface Prop {
 }
 
 interface EditItemProp {
-  currentName: string;
-  currentDesc: string;
+  item: ICardItem;
   onItemEdit: (name: string, desc: string) => void;
 }
 
-function EditItemData({ onItemEdit, currentName, currentDesc }: EditItemProp) {
-  const [cardName, setCardName] = useState<string>(currentName);
-  const [cardDesc, setCardDesc] = useState<string>(currentDesc);
+function EditItemData({ onItemEdit, item }: EditItemProp) {
+  const [itemName, setCardName] = useState<string>(item.name);
+  const [itemDesc, setCardDesc] = useState<string>(item.desc);
+
+  const { cards, saveCardsToStorage } = useContext(Context);
 
   const maxNameLength = 16;
 
   const isCardNameToLong = useMemo(() => {
-    return cardName.length > maxNameLength;
-  }, [cardName]);
+    return itemName.length > maxNameLength;
+  }, [itemName]);
 
   const isCardDescEmpty = useMemo(() => {
-    return !cardDesc;
-  }, [cardDesc]);
+    return !itemDesc;
+  }, [itemDesc]);
 
   const isCardNameEmpty = useMemo(() => {
-    return !cardName;
-  }, [cardName]);
+    return !itemName;
+  }, [itemName]);
 
   const onCardDescChange = (e?: React.FormEvent<HTMLTextAreaElement>) => {
     if (!e) {
@@ -136,6 +135,30 @@ function EditItemData({ onItemEdit, currentName, currentDesc }: EditItemProp) {
     else return <></>;
   }, [isCardNameEmpty, isCardDescEmpty]);
 
+  function onItemEditConfirm() {
+    const cardIndex = item.currentCard.index;
+    const itemCardWithNewData = { ...item, name: itemName, desc: itemDesc };
+    const newItems = [...item.currentCard.items, itemCardWithNewData];
+    const cardWithNewItem = { ...item.currentCard, items: newItems };
+    const cardsCopy = [...cards];
+    const foundIndex = cardsCopy.findIndex(
+      (cardCopy) => cardIndex === cardCopy.index
+    );
+
+    cardsCopy.splice(foundIndex, 1, cardWithNewItem);
+
+    console.log(
+      "onItemEditConfirm, card with new item: " +
+        JSON.stringify(cardWithNewItem)
+    );
+    console.log(
+      "onItemEditConfirm, copied Cards: " + JSON.stringify(cardsCopy)
+    );
+
+    saveCardsToStorage(cardsCopy);
+    onItemEdit(itemName, itemDesc);
+  }
+
   return (
     <Dialog>
       <DialogTrigger asChild>
@@ -161,7 +184,7 @@ function EditItemData({ onItemEdit, currentName, currentDesc }: EditItemProp) {
             <Input
               id="name"
               onInput={(e) => onCardNameChange(e)}
-              defaultValue={cardName}
+              defaultValue={itemName}
               className="col-span-3 bg-zinc-950 border-zinc-600"
             />
           </div>
@@ -172,7 +195,7 @@ function EditItemData({ onItemEdit, currentName, currentDesc }: EditItemProp) {
             <Textarea
               id="desc"
               onInput={(e) => onCardDescChange(e)}
-              defaultValue={cardDesc}
+              defaultValue={itemDesc}
               placeholder="Type your task description here."
               className="col-span-3 bg-zinc-950 border-zinc-600"
             />
@@ -188,7 +211,7 @@ function EditItemData({ onItemEdit, currentName, currentDesc }: EditItemProp) {
               disabled={isCardNameToLong || isCardDescEmpty || isCardNameEmpty}
               onClick={() => {
                 onCardDescChange();
-                onItemEdit(cardName, cardDesc);
+                onItemEditConfirm();
               }}
               className="bg-zinc-800 hover:bg-zinc-900 border border-zinc-600"
               type="submit"
@@ -258,7 +281,7 @@ export default function CardItem({ item }: Prop) {
   const [accordionTrigger, setAccordionTrigger] = useState<boolean>(true);
   const [cardDesc, setCardDesc] = useState<string>(item.desc);
   const [cardName, setCardName] = useState<string>(item.name);
-  const { cards, removeItemFromCard } = useContext(Context);
+  const { removeItemFromCard } = useContext(Context);
 
   const nameTrigger = useMemo(() => {
     if (accordionTrigger)
@@ -305,7 +328,6 @@ export default function CardItem({ item }: Prop) {
                   </button>
                 </AlertDialogTrigger>
                 <AlertDialogContent className="bg-zinc-900 ">
-                  {/* border border-zinc-600 */}
                   <AlertDialogHeader>
                     <AlertDialogTitle className="text-zinc-300">
                       Are you sure?
@@ -339,14 +361,11 @@ export default function CardItem({ item }: Prop) {
 
             <div className="flex items-center mb-2">
               <EditItemData
-                currentDesc={cardDesc}
-                currentName={cardName}
+                item={item}
                 onItemEdit={editCardItemData}
               ></EditItemData>
               <ComboboxPrompt item={item}></ComboboxPrompt>
             </div>
-
-            {/* <div className="mt-2 border-b border-zinc-600"></div> */}
           </div>
         </AccordionContent>
       </AccordionItem>

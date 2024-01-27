@@ -8,8 +8,10 @@ import {
   FormEvent,
   createContext,
   use,
+  useCallback,
   useContext,
   useEffect,
+  useMemo,
   useState,
 } from "react";
 import {
@@ -27,6 +29,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ICardItem } from "@/components/cardItem";
+import { ReceiptPoundSterling } from "lucide-react";
+import { json } from "stream/consumers";
 
 const CARDS: ICard[] = [
   {
@@ -54,23 +58,45 @@ interface Prop {
 function AddCardDialog({ onAddNewCard, cards }: Prop) {
   console.log("cards: " + cards.length);
 
-  const [cardName, setCardName] = useState<string>(
-    "New Card (" + (cards.length + 1) + ")"
-  );
+  const [cardName, setCardName] = useState<string>("");
+
+  const maxNameLength = 16;
+
+  const isCardNameToLong = useMemo(() => {
+    return cardName.length > maxNameLength;
+  }, [cardName]);
+
+  const isCardNameEmpty = useMemo(() => {
+    return !cardName;
+  }, [cardName]);
+
+  const nameToLongAlert = useMemo(() => {
+    if (isCardNameToLong)
+      return (
+        <p className="w-full text-right text-red-600 font-medium">
+          Title can&apos;t be longer than {maxNameLength} characters!
+        </p>
+      );
+    else return <></>;
+  }, [isCardNameToLong]);
+
+  const nameEmptyAlert = useMemo(() => {
+    if (isCardNameEmpty)
+      return (
+        <p className="w-full text-right text-red-600 font-medium">
+          Title can&apos;t be empty!
+        </p>
+      );
+    else return <></>;
+  }, [isCardNameEmpty]);
 
   const onNameChange = (e?: FormEvent<HTMLInputElement>) => {
-    console.log("cards, onNameChange: " + cards.length);
-
     if (!e) {
-      setCardName("New Card (" + (cards.length + 1) + ")");
       return;
     }
 
     const target = e?.target as HTMLInputElement;
-    const nameToSet =
-      target?.value === ""
-        ? "New Card (" + (cards.length + 1) + ")"
-        : target?.value;
+    const nameToSet = target?.value;
 
     setCardName(nameToSet);
   };
@@ -105,9 +131,12 @@ function AddCardDialog({ onAddNewCard, cards }: Prop) {
             />
           </div>
         </div>
+        {nameToLongAlert}
+        {nameEmptyAlert}
         <DialogFooter>
-          <DialogClose>
+          <DialogClose disabled={isCardNameToLong || isCardNameEmpty}>
             <Button
+              disabled={isCardNameToLong || isCardNameEmpty}
               onClick={() => {
                 onNameChange();
                 onAddNewCard(cardName);
@@ -125,97 +154,230 @@ function AddCardDialog({ onAddNewCard, cards }: Prop) {
 }
 
 export interface MainContext {
-  addItemToCard: (card: ICard, newDesc: string) => void;
-  removeItemFromCard: (card: ICard, index: number) => void;
+  cards: ICard[];
+  moveCardItem: (
+    currentCardIndex: number,
+    cardToAddIndex: number,
+    cardItemToMove: ICardItem
+  ) => void;
+  addItemToCard: (cardIndex: number, newName: string, newDesc: string) => void;
+  removeItemFromCard: (cardIndex: number, index: number) => void;
+  saveCardsToStorage: (cards: ICard[]) => void;
+  loadCardsFromStorage: () => void;
 }
 
 export const Context = createContext<MainContext>({
+  cards: [],
+  moveCardItem: () => {},
   addItemToCard: () => {},
   removeItemFromCard: () => {},
+  saveCardsToStorage: () => {},
+  loadCardsFromStorage: () => {},
 });
 
 export default function Home() {
   const [cards, setCards] = useState<ICard[]>([]);
 
   useEffect(() => {
-    setCards(CARDS);
+    loadCardsFromStorage();
   }, []);
 
-  function addItemToCard(card: ICard, newDesc: string) {
-    const newItem: ICardItem = {
-      currentCard: card,
-      index: card.items.length,
-      desc: newDesc,
-    };
-
-    const cardsWithAddedItem = { ...card, items: [...card.items, newItem] };
-    const cardsCopy = [...cards];
-    const foundIndex = cardsCopy.findIndex(
-      (cardCopy) => card.index === cardCopy.index
+  function getHighestIndex(cardItems: ICardItem[]) {
+    return cardItems.reduce(
+      (prev, currentCard) =>
+        prev > currentCard.index ? prev : currentCard.index,
+      0
     );
-    cardsCopy.splice(foundIndex, 1, cardsWithAddedItem);
-
-    setCards(cardsCopy);
   }
 
-  const [cardItemsRemove, setCardItemsRemove] = useState<ICardItem[]>([]);
-  function removeItemFromCard(card: ICard, itemIndex: number) {
-    console.log("removeItemFromCard 1: " + card.items.length);
-    setCardItemsRemove(card.items);
+  const addItemToCard = useCallback(
+    (cardIndex: number, newName: string, newDesc: string) => {
+      console.log("addItemToCard: " + cardIndex);
 
-    console.log("removeItemFromCard 2: " + cardItemsRemove.length);
+      const cardToAddItemTo = cards.find(
+        (cardInCurrentCards) => cardIndex === cardInCurrentCards.index
+      );
 
-    setCardItemsRemove((cardItemsRemove) =>
-      cardItemsRemove.filter((cardItem) => cardItem.index !== itemIndex)
-    );
+      if (!cardToAddItemTo) return;
 
-    console.log("removeItemFromCard 3: " + cardItemsRemove.length);
+      const newItem: ICardItem = {
+        currentCard: cardToAddItemTo,
+        index: getHighestIndex(cardToAddItemTo.items) + 1,
+        desc: newDesc,
+        name: newName,
+      };
 
-    const cardWithRemovedItem = { ...card, items: cardItemsRemove };
+      const cardsWithAddedItem = {
+        ...cardToAddItemTo,
+        items: [...cardToAddItemTo.items, newItem],
+      };
 
-    console.log("removeItemFromCard 4: " + cardWithRemovedItem.items.length);
+      const cardsCopy = [...cards];
+      const foundIndex = cardsCopy.findIndex(
+        (cardCopy) => cardIndex === cardCopy.index
+      );
 
-    const cardsCopy = [...cards];
-    const foundIndex = cardsCopy.findIndex(
-      (cardCopy) => card.index === cardCopy.index
-    );
+      cardsCopy.splice(foundIndex, 1, cardsWithAddedItem);
 
-    cardsCopy.splice(foundIndex, 1, cardWithRemovedItem);
-    setCards(cardsCopy);
-  }
+      setCards(cardsCopy);
+    },
+    [cards]
+  );
+
+  const removeItemFromCard = useCallback(
+    (cardIndex: number, itemIndex: number) => {
+      const cardToRemoveItemFrom = cards.find(
+        (cardInCurrentCards) => cardIndex === cardInCurrentCards.index
+      );
+
+      if (!cardToRemoveItemFrom) return;
+
+      const cardWithRemovedItem = {
+        ...cardToRemoveItemFrom,
+        items: cardToRemoveItemFrom.items.filter(
+          (item) => item.index !== itemIndex
+        ),
+      };
+
+      const cardsCopy = [...cards];
+      const foundIndex = cardsCopy.findIndex(
+        (cardCopy) => cardIndex === cardCopy.index
+      );
+
+      cardsCopy.splice(foundIndex, 1, cardWithRemovedItem);
+
+      setCards(cardsCopy);
+    },
+    [cards]
+  );
 
   function addNewCard(name: string) {
     const newCard: ICard = {
-      index: cards.length,
+      index: new Date().getTime(),
       name: name,
       items: [],
     };
 
-    setCards([...cards, newCard]);
+    const cardsCopy = [...cards];
+    cardsCopy.push(newCard);
+    setCards(cardsCopy);
+
+    saveCardsToStorage(cardsCopy);
+  }
+
+  function saveCardsToStorage(cards: ICard[]) {
+    const cardsDataToJson = JSON.stringify(cards);
+    localStorage.setItem("cardsData", cardsDataToJson);
+  }
+
+  function loadCardsFromStorage() {
+    const cardsData = localStorage.getItem("cardsData");
+    if (!cardsData) {
+      setCards(CARDS);
+      return;
+    }
+
+    var cards = JSON.parse(cardsData);
+    setCards(cards);
+  }
+
+  function moveCardItem(
+    currentCardIndex: number,
+    cardToAddIndex: number,
+    cardItemToMove: ICardItem
+  ) {
+    //--------------- Add
+
+    const cardToAddItemTo = cards.find(
+      (cardInCurrentCards) => cardToAddIndex === cardInCurrentCards.index
+    );
+
+    if (!cardToAddItemTo) return;
+
+    const newItem: ICardItem = {
+      currentCard: cardToAddItemTo,
+      index: getHighestIndex(cardToAddItemTo.items) + 1,
+      desc: cardItemToMove.desc,
+      name: cardItemToMove.name,
+    };
+
+    const cardsWithAddedItem = {
+      ...cardToAddItemTo,
+      items: [...cardToAddItemTo.items, newItem],
+    };
+
+    const cardsCopy = [...cards];
+    const foundIndexToAdd = cardsCopy.findIndex(
+      (cardCopy) => cardToAddIndex === cardCopy.index
+    );
+
+    cardsCopy.splice(foundIndexToAdd, 1, cardsWithAddedItem);
+
+    //--------------- Remove
+
+    const cardToRemoveItemFrom = cards.find(
+      (cardInCurrentCards) => currentCardIndex === cardInCurrentCards.index
+    );
+
+    if (!cardToRemoveItemFrom) return;
+
+    const cardWithRemovedItem = {
+      ...cardToRemoveItemFrom,
+      items: cardToRemoveItemFrom.items.filter(
+        (item) => item.index !== cardItemToMove.index
+      ),
+    };
+
+    const foundIndexToRemove = cardsCopy.findIndex(
+      (cardCopy) => currentCardIndex === cardCopy.index
+    );
+
+    cardsCopy.splice(foundIndexToRemove, 1, cardWithRemovedItem);
+    setCards(cardsCopy);
   }
 
   function removeCard(cardIndex: number) {
-    setCards((card) => cards.filter((card) => card.index !== cardIndex));
+    console.log("removeCard, index: " + cardIndex);
+
+    // const cardsCopy = [...cards];
+
+    // cardsCopy.forEach((card) =>
+    //   console.log("removeCard, cards i: " + card.index)
+    // );
+
+    const cardsCopy = cards.filter((card) => card.index !== cardIndex);
+    saveCardsToStorage(cardsCopy);
+
+    setTimeout(() => {
+      loadCardsFromStorage();
+    });
+
+    // cards.forEach((card) => console.log("removeCard, cards i: " + card.index));
   }
 
   return (
     <Context.Provider
       value={{
+        cards: cards,
+        moveCardItem: moveCardItem,
         addItemToCard: addItemToCard,
         removeItemFromCard: removeItemFromCard,
+        saveCardsToStorage: saveCardsToStorage,
+        loadCardsFromStorage: loadCardsFromStorage,
       }}
     >
       <div className="flex flex-col sm:flex-row items-center sm:items-start w-full sm:ml-4 screen gap-4 my-4 flex-wrap">
-        {cards.map((result, i) => (
+        {cards.map((result) => (
           <Card
-            key={"projectKey_" + i}
-            card={cards[i]}
-            cards={cards}
+            key={"cardKey_" + result.index}
+            card={result}
             onRemove={removeCard}
           ></Card>
         ))}
         <AddCardDialog onAddNewCard={addNewCard} cards={cards}></AddCardDialog>
       </div>
+
+      {/* {JSON.stringify(cards)} */}
     </Context.Provider>
   );
 }

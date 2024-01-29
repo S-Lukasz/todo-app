@@ -58,7 +58,7 @@ export default function Header() {
       </AlertDialog>
 
       <p className="text-center text-lg font-semibold text-white absolute w-full h-full pointer-events-none mt-5 ">
-        ToDo List - Łukasz Surma
+        Kanban Board - Łukasz Surma
       </p>
       <div className=" border-b border-zinc-700"> </div>
     </header>

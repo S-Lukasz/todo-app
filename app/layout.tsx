@@ -6,7 +6,7 @@ import Header from "@/components/header";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "ToDo",
+  title: "Board",
   description: "Created by Łukasz Surma",
 };
 
